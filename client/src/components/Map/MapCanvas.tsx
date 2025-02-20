@@ -71,6 +71,7 @@ export function MapCanvas() {
         mapDiv.style.position = 'absolute';
         mapDiv.style.top = '0';
         mapDiv.style.left = '0';
+        mapDiv.style.zIndex = '1'; // Set map to lowest z-index
         containerRef.current.appendChild(mapDiv);
 
         const map = new window.google.maps.Map(mapDiv, {
@@ -183,34 +184,37 @@ export function MapCanvas() {
       onDrop={handleDrop}
       onDragOver={handleDragOver}
     >
-      <Stage
-        ref={stageRef}
-        width={dimensions.width}
-        height={dimensions.height}
-        onWheel={handleWheel}
-        scaleX={scale}
-        scaleY={scale}
-        x={position.x}
-        y={position.y}
-        rotation={rotation}
-      >
-        <Layer>
-          <GridOverlay 
-            width={dimensions.width} 
-            height={dimensions.height} 
-            scale={scale} 
-          />
-          {objects.map((object, index) => (
-            <ObjectShape
-              key={`${object.id}-${index}`}
-              object={object}
-              x={object.x}
-              y={object.y}
-              rotation={object.rotation}
+      {/* Konva stage container */}
+      <div style={{ position: 'absolute', top: 0, left: 0, zIndex: 2 }}>
+        <Stage
+          ref={stageRef}
+          width={dimensions.width}
+          height={dimensions.height}
+          onWheel={handleWheel}
+          scaleX={scale}
+          scaleY={scale}
+          x={position.x}
+          y={position.y}
+          rotation={rotation}
+        >
+          <Layer>
+            <GridOverlay 
+              width={dimensions.width} 
+              height={dimensions.height} 
+              scale={scale} 
             />
-          ))}
-        </Layer>
-      </Stage>
+            {objects.map((object, index) => (
+              <ObjectShape
+                key={`${object.id}-${index}`}
+                object={object}
+                x={object.x}
+                y={object.y}
+                rotation={object.rotation}
+              />
+            ))}
+          </Layer>
+        </Stage>
+      </div>
       <MapControls
         scale={scale}
         setScale={setScale}
