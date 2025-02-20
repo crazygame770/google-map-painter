@@ -1,40 +1,36 @@
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import {
   Square,
   Circle,
   ArrowRight,
   Pencil,
-  Type
+  Type,
+  MousePointer
 } from "lucide-react";
 
 export function DrawingTools() {
   return (
-    <div className="space-y-4">
-      <h2 className="font-semibold">Drawing Tools</h2>
-      <div className="grid grid-cols-2 gap-2">
-        <Button variant="outline" className="flex flex-col items-center p-4">
-          <Square className="h-6 w-6 mb-1" />
-          <span className="text-xs">Rectangle</span>
+    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-10">
+      <div className="bg-background/80 backdrop-blur-sm border rounded-lg shadow-lg p-2 flex gap-2">
+        <Button variant="ghost" size="icon" className="h-9 w-9" title="Select">
+          <MousePointer className="h-4 w-4" />
         </Button>
-        <Button variant="outline" className="flex flex-col items-center p-4">
-          <Circle className="h-6 w-6 mb-1" />
-          <span className="text-xs">Circle</span>
+        <Button variant="ghost" size="icon" className="h-9 w-9" title="Rectangle">
+          <Square className="h-4 w-4" />
         </Button>
-        <Button variant="outline" className="flex flex-col items-center p-4">
-          <ArrowRight className="h-6 w-6 mb-1" />
-          <span className="text-xs">Arrow</span>
+        <Button variant="ghost" size="icon" className="h-9 w-9" title="Circle">
+          <Circle className="h-4 w-4" />
         </Button>
-        <Button variant="outline" className="flex flex-col items-center p-4">
-          <Pencil className="h-6 w-6 mb-1" />
-          <span className="text-xs">Free Draw</span>
+        <Button variant="ghost" size="icon" className="h-9 w-9" title="Arrow">
+          <ArrowRight className="h-4 w-4" />
         </Button>
-        <Button variant="outline" className="flex flex-col items-center p-4">
-          <Type className="h-6 w-6 mb-1" />
-          <span className="text-xs">Text</span>
+        <Button variant="ghost" size="icon" className="h-9 w-9" title="Free Draw">
+          <Pencil className="h-4 w-4" />
+        </Button>
+        <Button variant="ghost" size="icon" className="h-9 w-9" title="Text">
+          <Type className="h-4 w-4" />
         </Button>
       </div>
-      <Separator />
     </div>
   );
 }
