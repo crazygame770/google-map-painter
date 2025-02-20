@@ -16,12 +16,13 @@ export function MapControls({
   setRotation
 }: MapControlsProps) {
   return (
-    <div className="absolute bottom-4 right-4 flex gap-4 bg-background/80 p-2 rounded-lg backdrop-blur">
+    <div className="fixed bottom-4 right-4 flex gap-4 bg-background/95 border shadow-lg p-3 rounded-lg backdrop-blur-sm z-[100]">
       <div className="flex items-center gap-2">
         <Button
           variant="outline"
           size="icon"
           onClick={() => setScale(scale / 1.1)}
+          className="hover:bg-accent"
         >
           <Minus className="h-4 w-4" />
         </Button>
@@ -29,16 +30,18 @@ export function MapControls({
           variant="outline"
           size="icon"
           onClick={() => setScale(scale * 1.1)}
+          className="hover:bg-accent"
         >
           <Plus className="h-4 w-4" />
         </Button>
       </div>
-      
+
       <div className="flex items-center gap-2">
         <Button
           variant="outline"
           size="icon"
           onClick={() => setRotation((rotation + 90) % 360)}
+          className="hover:bg-accent"
         >
           <RotateCw className="h-4 w-4" />
         </Button>

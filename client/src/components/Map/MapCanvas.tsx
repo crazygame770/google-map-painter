@@ -79,7 +79,7 @@ export function MapCanvas() {
           zoom: 18,
           mapTypeId: 'satellite',
           disableDefaultUI: true,
-          gestureHandling: 'cooperative',
+          gestureHandling: 'none', // Disable Google Maps gestures
           tilt: 0
         });
 
@@ -100,16 +100,18 @@ export function MapCanvas() {
           const center = map.getCenter();
           if (center && map.getProjection()) {
             const projection = map.getProjection();
-            const centerPoint = projection.fromLatLngToPoint(center);
-            const initialPoint = projection.fromLatLngToPoint(
-              new google.maps.LatLng(CAPE_MAY_COORDS)
-            );
+            if (projection) {
+              const centerPoint = projection.fromLatLngToPoint(center);
+              const initialPoint = projection.fromLatLngToPoint(
+                new google.maps.LatLng(CAPE_MAY_COORDS)
+              );
 
-            if (centerPoint && initialPoint) {
-              setPosition({
-                x: (centerPoint.x - initialPoint.x) * scale,
-                y: (centerPoint.y - initialPoint.y) * scale
-              });
+              if (centerPoint && initialPoint) {
+                setPosition({
+                  x: (centerPoint.x - initialPoint.x) * scale,
+                  y: (centerPoint.y - initialPoint.y) * scale
+                });
+              }
             }
           }
         });
@@ -141,8 +143,62 @@ export function MapCanvas() {
       const zoom = map.getZoom();
 
       if (zoom !== undefined) {
-        map.setZoom(e.evt.deltaY > 0 ? zoom - 1 : zoom + 1);
+        const newZoom = e.evt.deltaY > 0 ? zoom - 1 : zoom + 1;
+        map.setZoom(newZoom);
       }
+    }
+  };
+
+  // Update the drag handlers
+  const handleDragStart = (e: any) => {
+    e.evt.preventDefault();
+    const stage = stageRef.current;
+    if (!stage) return;
+
+    // Enable dragging and store initial position
+    stage.draggable(true);
+    const pos = stage.getPosition();
+    console.log('Drag start:', pos);
+  };
+
+  const handleDragEnd = () => {
+    const stage = stageRef.current;
+    if (!stage) return;
+
+    // Disable dragging
+    stage.draggable(false);
+    console.log('Drag end');
+  };
+
+  const handleDragMove = (e: any) => {
+    if (!mapRef.current) return;
+
+    const map = mapRef.current;
+    const projection = map.getProjection();
+    if (!projection) return;
+
+    const center = map.getCenter();
+    if (!center) return;
+
+    // Calculate movement delta
+    const delta = {
+      x: e.evt.movementX,
+      y: e.evt.movementY
+    };
+
+    console.log('Drag move delta:', delta);
+
+    // Convert screen movement to lat/lng
+    const point = projection.fromLatLngToPoint(center);
+    const scale = Math.pow(2, map.getZoom() || 0);
+
+    point.x -= delta.x / scale;
+    point.y -= delta.y / scale;
+
+    const newCenter = projection.fromPointToLatLng(point);
+    if (newCenter) {
+      console.log('New center:', newCenter.toJSON());
+      map.setCenter(newCenter);
     }
   };
 
@@ -177,6 +233,7 @@ export function MapCanvas() {
     }
   };
 
+  // Update the Stage container div styling
   return (
     <div
       ref={containerRef}
@@ -184,13 +241,34 @@ export function MapCanvas() {
       onDrop={handleDrop}
       onDragOver={handleDragOver}
     >
-      {/* Konva stage container */}
-      <div style={{ position: 'absolute', top: 0, left: 0, zIndex: 2 }}>
+      {/* Map container - lowest z-index */}
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        zIndex: 1
+      }} />
+
+      {/* Konva stage container - middle z-index */}
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        zIndex: 2,
+        pointerEvents: 'all'
+      }}>
         <Stage
           ref={stageRef}
           width={dimensions.width}
           height={dimensions.height}
           onWheel={handleWheel}
+          onMouseDown={handleDragStart}
+          onMouseUp={handleDragEnd}
+          onMouseMove={handleDragMove}
           scaleX={scale}
           scaleY={scale}
           x={position.x}
@@ -215,6 +293,8 @@ export function MapCanvas() {
           </Layer>
         </Stage>
       </div>
+
+      {/* Controls - highest z-index */}
       <MapControls
         scale={scale}
         setScale={setScale}
