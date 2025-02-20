@@ -2,22 +2,32 @@ import { useEffect, useRef, useState } from 'react';
 import { Stage, Layer } from 'react-konva';
 import { GridOverlay } from './GridOverlay';
 import { MapControls } from './MapControls';
+import { ObjectShape } from './ObjectShape';
 import { Loader } from '@googlemaps/js-api-loader';
 import { useToast } from '@/hooks/use-toast';
+import { BaseMapObject } from '@/lib/objects';
 
 const CAPE_MAY_COORDS = {
   lat: 38.9351,
   lng: -74.9060
 };
 
+interface PlacedObject extends BaseMapObject {
+  x: number;
+  y: number;
+  rotation: number;
+}
+
 export function MapCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
+  const stageRef = useRef<any>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [rotation, setRotation] = useState(0);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [objects, setObjects] = useState<PlacedObject[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -135,9 +145,36 @@ export function MapCanvas() {
     }
   };
 
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const objectData = e.dataTransfer.getData('object');
+    if (!objectData || !stageRef.current) return;
+
+    const object: BaseMapObject = JSON.parse(objectData);
+    const stage = stageRef.current;
+    const pointerPosition = stage.getPointerPosition();
+    const stagePosition = stage.position();
+
+    // Convert screen coordinates to stage coordinates
+    const x = (pointerPosition.x - stagePosition.x) / scale;
+    const y = (pointerPosition.y - stagePosition.y) / scale;
+
+    setObjects([...objects, { ...object, x, y, rotation: 0 }]);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
   return (
-    <div ref={containerRef} className="w-full h-full relative overflow-hidden">
+    <div
+      ref={containerRef}
+      className="w-full h-full relative overflow-hidden"
+      onDrop={handleDrop}
+      onDragOver={handleDragOver}
+    >
       <Stage
+        ref={stageRef}
         width={dimensions.width}
         height={dimensions.height}
         onWheel={handleWheel}
@@ -153,6 +190,15 @@ export function MapCanvas() {
             height={dimensions.height} 
             scale={scale} 
           />
+          {objects.map((object, index) => (
+            <ObjectShape
+              key={`${object.id}-${index}`}
+              object={object}
+              x={object.x}
+              y={object.y}
+              rotation={object.rotation}
+            />
+          ))}
         </Layer>
       </Stage>
       <MapControls
