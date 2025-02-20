@@ -150,20 +150,30 @@ export function MapCanvas() {
     const objectData = e.dataTransfer.getData('object');
     if (!objectData || !stageRef.current) return;
 
-    const object: BaseMapObject = JSON.parse(objectData);
     const stage = stageRef.current;
+    stage.setPointersPositions(e);
     const pointerPosition = stage.getPointerPosition();
-    const stagePosition = stage.position();
+
+    if (!pointerPosition) return;
+
+    const stagePosition = {
+      x: stage.x(),
+      y: stage.y()
+    };
 
     // Convert screen coordinates to stage coordinates
     const x = (pointerPosition.x - stagePosition.x) / scale;
     const y = (pointerPosition.y - stagePosition.y) / scale;
 
+    const object: BaseMapObject = JSON.parse(objectData);
     setObjects([...objects, { ...object, x, y, rotation: 0 }]);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+    if (stageRef.current) {
+      stageRef.current.setPointersPositions(e);
+    }
   };
 
   return (
