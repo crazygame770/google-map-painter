@@ -29,6 +29,8 @@ export function MapCanvas() {
   const [mapLoaded, setMapLoaded] = useState(false);
   const [objects, setObjects] = useState<PlacedObject[]>([]);
   const { toast } = useToast();
+  const [isDragging, setIsDragging] = useState(false);
+  const [pressedKeys, setPressedKeys] = useState(new Set<string>());
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -90,7 +92,7 @@ export function MapCanvas() {
         map.addListener('zoom_changed', () => {
           const zoom = map.getZoom();
           if (zoom !== undefined) {
-            const newScale = Math.pow(2, zoom - 18);
+            const newScale = Math.pow(2, zoom - 18); // Adjust base zoom level as needed
             setScale(newScale);
           }
         });
@@ -135,6 +137,7 @@ export function MapCanvas() {
     };
   }, []);
 
+  // Update the wheel handler to sync grid with map zoom
   const handleWheel = (e: any) => {
     e.evt.preventDefault();
 
@@ -143,61 +146,163 @@ export function MapCanvas() {
       const zoom = map.getZoom();
 
       if (zoom !== undefined) {
-        const newZoom = e.evt.deltaY > 0 ? zoom - 1 : zoom + 1;
-        map.setZoom(newZoom);
+        const zoomDelta = e.evt.deltaY > 0 ? -0.5 : 0.5;
+        const newZoom = zoom + zoomDelta;
+        const clampedZoom = Math.min(Math.max(newZoom, 15), 20);
+        
+        // Update map zoom
+        map.setZoom(clampedZoom);
       }
     }
   };
 
-  // Update the drag handlers
-  const handleDragStart = (e: any) => {
-    e.evt.preventDefault();
-    const stage = stageRef.current;
-    if (!stage) return;
+  // Add map zoom change listener to keep grid in sync
+  useEffect(() => {
+    if (!mapRef.current) return;
+    
+    const map = mapRef.current;
+    
+    const zoomListener = () => {
+      const zoom = map.getZoom();
+      if (zoom !== undefined) {
+        // Calculate scale based on map's world coordinates
+        const TILE_SIZE = 256;
+        const scale = TILE_SIZE * Math.pow(2, zoom - 18);
+        setScale(scale);
+      }
+    };
 
-    // Enable dragging and store initial position
-    stage.draggable(true);
-    const pos = stage.getPosition();
-    console.log('Drag start:', pos);
+    const centerListener = () => {
+      const center = map.getCenter();
+      const projection = map.getProjection();
+      if (!center || !projection) return;
+
+      const initialLatLng = new google.maps.LatLng(CAPE_MAY_COORDS);
+      const point = projection.fromLatLngToPoint(center);
+      const initialPoint = projection.fromLatLngToPoint(initialLatLng);
+
+      if (point && initialPoint) {
+        const zoom = map.getZoom() || 18;
+        const TILE_SIZE = 256;
+        const worldScale = Math.pow(2, zoom);
+        
+        // Calculate position in world coordinates
+        setPosition({
+          x: (point.x - initialPoint.x) * TILE_SIZE * worldScale,
+          y: (point.y - initialPoint.y) * TILE_SIZE * worldScale
+        });
+      }
+    };
+
+    map.addListener('zoom_changed', zoomListener);
+    map.addListener('center_changed', centerListener);
+
+    // Initial sync
+    zoomListener();
+    centerListener();
+
+    return () => {
+      google.maps.event.clearListeners(map, 'zoom_changed');
+      google.maps.event.clearListeners(map, 'center_changed');
+    };
+  }, []);
+
+  // Handle continuous key movement
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      setPressedKeys(prev => {
+        const next = new Set(prev);
+        next.add(e.key);
+        return next;
+      });
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      setPressedKeys(prev => {
+        const next = new Set(prev);
+        next.delete(e.key);
+        return next;
+      });
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
+
+  // Update the continuous movement effect for keyboard
+  useEffect(() => {
+    if (!mapRef.current || pressedKeys.size === 0) return;
+
+    const map = mapRef.current;
+    const step = 150; // Increased from 50 to 150 for faster keyboard movement
+    
+    const moveMap = () => {
+      const center = map.getCenter();
+      const projection = map.getProjection();
+      if (!center || !projection) return;
+
+      const point = projection.fromLatLngToPoint(center);
+      if (!point) return;
+
+      const scale = Math.pow(2, map.getZoom() || 0);
+      
+      // Increase movement speed significantly
+      if (pressedKeys.has('ArrowUp')) point.y -= step / (128 * scale);
+      if (pressedKeys.has('ArrowDown')) point.y += step / (128 * scale);
+      if (pressedKeys.has('ArrowLeft')) point.x -= step / (128 * scale);
+      if (pressedKeys.has('ArrowRight')) point.x += step / (128 * scale);
+
+      const newCenter = projection.fromPointToLatLng(point);
+      if (newCenter) {
+        map.setCenter(newCenter);
+      }
+    };
+
+    const intervalId = setInterval(moveMap, 16);
+    return () => clearInterval(intervalId);
+  }, [pressedKeys]);
+
+  // Update drag handlers for better sensitivity
+  const handleDragStart = (e: any) => {
+    if (e.evt.button !== 0) return;
+    e.evt.preventDefault();
+    setIsDragging(true);
   };
 
   const handleDragEnd = () => {
-    const stage = stageRef.current;
-    if (!stage) return;
-
-    // Disable dragging
-    stage.draggable(false);
-    console.log('Drag end');
+    setIsDragging(false);
   };
 
+  // Update the drag handler to properly move the grid
   const handleDragMove = (e: any) => {
-    if (!mapRef.current) return;
+    if (!isDragging || !mapRef.current) return;
 
     const map = mapRef.current;
     const projection = map.getProjection();
-    if (!projection) return;
-
     const center = map.getCenter();
-    if (!center) return;
+    
+    if (!projection || !center) return;
 
-    // Calculate movement delta
-    const delta = {
-      x: e.evt.movementX,
-      y: e.evt.movementY
-    };
-
-    console.log('Drag move delta:', delta);
-
-    // Convert screen movement to lat/lng
     const point = projection.fromLatLngToPoint(center);
-    const scale = Math.pow(2, map.getZoom() || 0);
+    if (!point) return;
 
-    point.x -= delta.x / scale;
-    point.y -= delta.y / scale;
+    const zoom = map.getZoom() || 18;
+    const TILE_SIZE = 256;
+    const worldScale = Math.pow(2, zoom);
+    
+    // Calculate movement in world coordinates
+    const movementX = e.evt.movementX || e.evt.deltaX || 0;
+    const movementY = e.evt.movementY || e.evt.deltaY || 0;
+
+    point.x -= movementX / (TILE_SIZE * worldScale);
+    point.y -= movementY / (TILE_SIZE * worldScale);
 
     const newCenter = projection.fromPointToLatLng(point);
     if (newCenter) {
-      console.log('New center:', newCenter.toJSON());
       map.setCenter(newCenter);
     }
   };
@@ -240,6 +345,7 @@ export function MapCanvas() {
       className="w-full h-full relative overflow-hidden"
       onDrop={handleDrop}
       onDragOver={handleDragOver}
+      tabIndex={0} // Make div focusable for keyboard events
     >
       {/* Map container - lowest z-index */}
       <div style={{
@@ -259,7 +365,8 @@ export function MapCanvas() {
         width: '100%',
         height: '100%',
         zIndex: 2,
-        pointerEvents: 'all'
+        pointerEvents: 'all',
+        cursor: isDragging ? 'grabbing' : 'grab'
       }}>
         <Stage
           ref={stageRef}
@@ -268,6 +375,7 @@ export function MapCanvas() {
           onWheel={handleWheel}
           onMouseDown={handleDragStart}
           onMouseUp={handleDragEnd}
+          onMouseLeave={handleDragEnd}
           onMouseMove={handleDragMove}
           scaleX={scale}
           scaleY={scale}
@@ -300,6 +408,7 @@ export function MapCanvas() {
         setScale={setScale}
         rotation={rotation}
         setRotation={setRotation}
+        mapRef={mapRef}
       />
     </div>
   );
