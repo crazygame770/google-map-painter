@@ -23,7 +23,7 @@ export function GridOverlay({ width, height, scale }: GridOverlayProps) {
         key={`v${x}`}
         points={[x, startY, x, endY]}
         stroke="rgba(255, 255, 255, 0.2)"
-        strokeWidth={1 / scale}
+        strokeWidth={2 / scale}
       />
     );
   }
@@ -35,7 +35,7 @@ export function GridOverlay({ width, height, scale }: GridOverlayProps) {
         key={`h${y}`}
         points={[startX, y, endX, y]}
         stroke="rgba(255, 255, 255, 0.2)"
-        strokeWidth={1 / scale}
+        strokeWidth={2 / scale}
       />
     );
   }
