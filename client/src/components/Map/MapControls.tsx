@@ -1,4 +1,3 @@
-import { MutableRefObject } from 'react';
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Minus, Plus, RotateCw } from "lucide-react";
@@ -8,50 +7,21 @@ interface MapControlsProps {
   setScale: (scale: number) => void;
   rotation: number;
   setRotation: (rotation: number) => void;
-  mapRef: MutableRefObject<google.maps.Map | null>;
 }
 
 export function MapControls({
   scale,
   setScale,
   rotation,
-  setRotation,
-  mapRef
+  setRotation
 }: MapControlsProps) {
-  const handleZoomIn = () => {
-    if (!mapRef.current) return;
-    const map = mapRef.current;
-    const currentZoom = map.getZoom();
-    if (currentZoom !== undefined) {
-      const newZoom = currentZoom + 0.5;
-      const clampedZoom = Math.min(Math.max(newZoom, 15), 20);
-      map.setZoom(clampedZoom);
-    }
-  };
-
-  const handleZoomOut = () => {
-    if (!mapRef.current) return;
-    const map = mapRef.current;
-    const currentZoom = map.getZoom();
-    if (currentZoom !== undefined) {
-      const newZoom = currentZoom - 0.5;
-      const clampedZoom = Math.min(Math.max(newZoom, 15), 20);
-      map.setZoom(clampedZoom);
-    }
-  };
-
-  // Rotation only affects the grid layer for now
-  const handleRotation = (value: number) => {
-    setRotation(value);
-  };
-
   return (
     <div className="fixed bottom-4 right-4 flex gap-4 bg-background/95 border shadow-lg p-3 rounded-lg backdrop-blur-sm z-[100]">
       <div className="flex items-center gap-2">
         <Button
           variant="outline"
           size="icon"
-          onClick={handleZoomOut}
+          onClick={() => setScale(scale / 1.1)}
           className="hover:bg-accent"
         >
           <Minus className="h-4 w-4" />
@@ -59,7 +29,7 @@ export function MapControls({
         <Button
           variant="outline"
           size="icon"
-          onClick={handleZoomIn}
+          onClick={() => setScale(scale * 1.1)}
           className="hover:bg-accent"
         >
           <Plus className="h-4 w-4" />
