@@ -28,6 +28,7 @@ export function MapCanvas() {
   const [rotation, setRotation] = useState(0);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [objects, setObjects] = useState<PlacedObject[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -135,6 +136,27 @@ export function MapCanvas() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleWindowMouseMove = (e: MouseEvent) => {
+      if (!isDragging) return;
+      handleDragMove({ evt: e });
+    };
+
+    const handleWindowMouseUp = () => {
+      handleDragEnd();
+    };
+
+    window.addEventListener('mousemove', handleWindowMouseMove);
+    window.addEventListener('mouseup', handleWindowMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleWindowMouseMove);
+      window.removeEventListener('mouseup', handleWindowMouseUp);
+    };
+  }, [isDragging]);
+
   const handleWheel = (e: any) => {
     e.evt.preventDefault();
 
@@ -157,6 +179,7 @@ export function MapCanvas() {
 
     // Enable dragging and store initial position
     stage.draggable(true);
+    setIsDragging(true);
     const pos = stage.getPosition();
     console.log('Drag start:', pos);
   };
@@ -167,11 +190,12 @@ export function MapCanvas() {
 
     // Disable dragging
     stage.draggable(false);
+    setIsDragging(false);
     console.log('Drag end');
   };
 
   const handleDragMove = (e: any) => {
-    if (!mapRef.current) return;
+    if (!mapRef.current || !isDragging) return;
 
     const map = mapRef.current;
     const projection = map.getProjection();
@@ -268,7 +292,6 @@ export function MapCanvas() {
           onWheel={handleWheel}
           onMouseDown={handleDragStart}
           onMouseUp={handleDragEnd}
-          onMouseMove={handleDragMove}
           scaleX={scale}
           scaleY={scale}
           x={position.x}
