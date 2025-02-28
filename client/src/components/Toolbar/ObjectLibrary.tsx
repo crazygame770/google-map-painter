@@ -11,16 +11,16 @@ export function ObjectLibrary() {
         <Accordion type="multiple" className="w-full">
           {categories.map((category) => (
             <AccordionItem key={category} value={category}>
-              <AccordionTrigger className="text-sm">{category}</AccordionTrigger>
+              <AccordionTrigger className="text-sm py-3">{category}</AccordionTrigger>
               <AccordionContent>
-                <div className="grid grid-cols-2 gap-2 p-2">
+                <div className="grid grid-cols-2 gap-3 p-3">
                   {objects
                     .filter((object) => object.category === category)
                     .map((object) => (
                       <Button
                         key={object.id}
                         variant="outline"
-                        className="flex flex-col items-center p-4"
+                        className="flex flex-col items-center p-4 space-y-2 h-auto min-h-[100px]"
                         draggable
                         onDragStart={(e) => {
                           e.dataTransfer.setData("object", JSON.stringify(object));
