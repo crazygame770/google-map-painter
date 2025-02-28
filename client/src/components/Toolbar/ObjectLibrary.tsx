@@ -13,22 +13,22 @@ export function ObjectLibrary() {
             <AccordionItem key={category} value={category}>
               <AccordionTrigger className="text-sm py-3">{category}</AccordionTrigger>
               <AccordionContent>
-                <div className="grid grid-cols-2 gap-3 p-3">
+                <div className="grid grid-cols-2 gap-6 p-6">
                   {objects
                     .filter((object) => object.category === category)
                     .map((object) => (
                       <Button
                         key={object.id}
                         variant="outline"
-                        className="flex flex-col items-center p-4 space-y-2 h-auto min-h-[100px]"
+                        className="flex flex-col items-center p-2 space-y-1 h-auto min-h-[100px] w-full overflow-hidden"
                         draggable
                         onDragStart={(e) => {
                           e.dataTransfer.setData("object", JSON.stringify(object));
                         }}
                       >
-                        <object.icon className="h-6 w-6 mb-1" />
-                        <span className="text-xs text-center">{object.name}</span>
-                        <span className="text-xs text-muted-foreground mt-1">
+                        <object.icon className="h-6 w-6 shrink-0" />
+                        <span className="text-xs text-center whitespace-normal break-words w-full line-clamp-2">{object.name}</span>
+                        <span className="text-xs text-muted-foreground whitespace-normal break-words w-full">
                           {object.width}m × {object.length}m
                         </span>
                       </Button>
